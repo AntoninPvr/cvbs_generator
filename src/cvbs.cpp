@@ -49,17 +49,23 @@ CVBS::CVBS(std::size_t width,
         throw std::invalid_argument("CVBS: front_porch must be >= 0.0");
     }
 
-    // WIP: Validate timing parameters (sync_pulse, back_porch, front_porch, sample_rate)
-    double line_duration = static_cast<double>(fps_ * height_);
-    // Minimum sample rate to satisfy Nyquist theorem
-    uint32_t min_sample_rate = 2 * width_ * height_ + 
-                               static_cast<uint32_t>( (sync_pulse_ + back_porch_ + front_porch_) / delta_t );
+    // We consider that sync pulse, back porch and front porch are "wasted time"
+    double unactive_line_time = sync_pulse + back_porch + front_porch;
 
-    if (sample_rate_ == 0) {
+    double line_duration = static_cast<double>(fps_ * height_);
+
+    double active_line_time = line_duration - unactive_line_time;
+
+    double pixel_time = active_line_time / width_;
+
+    // Minimum sample rate to satisfy Nyquist theorem
+    uint32_t min_sample_rate = (2 / pixel_time);
+
+    if (sample_rate_ <= min_sample_rate) {
         throw std::invalid_argument("CVBS: sample_rate must be >= 1");
     }
 
-    // Calculate the size of the CVBS buffer
+    // Calculate the size of the CVBS buffer WIP must add vertical sync
     std::size_t buffer_size = static_cast<std::size_t>(sample_rate_ / fps_);
     cvbs_buffer.resize(buffer_size, 0);
 }
